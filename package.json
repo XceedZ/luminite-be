@@ -2,14 +2,31 @@
   "name": "elysia-template",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun run dist/index.js",
+    "migrate:generate": "drizzle-kit generate",
+    "migrate:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:e2e": "vitest --run"
   },
   "dependencies": {
-    "elysia": "latest"
+    "@elysiajs/jwt": "^1.4.0",
+    "@elysiajs/swagger": "^1.3.1",
+    "drizzle-orm": "^0.44.7",
+    "drizzle-typebox": "^0.3.3",
+    "elysia": "^1.4.16",
+    "elysia-rate-limit": "^4.4.2",
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "@vitest/ui": "^4.0.12",
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.7",
+    "supertest": "^7.1.4",
+    "vitest": "^4.0.12"
   },
   "module": "src/index.js"
 }
