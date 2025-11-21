@@ -1,6 +1,17 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { config } from 'dotenv';
 
-const queryClient = postgres(process.env.DATABASE_URL!);
+// Load environment variables
+config();
+
+const queryClient = postgres({
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'myapp',
+});
+
 export const db = drizzle(queryClient, { schema });

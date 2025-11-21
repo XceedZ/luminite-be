@@ -12,9 +12,25 @@ export const verifyPassword = async (password: string, hash: string) => {
   return await Bun.password.verify(password, hash);
 };
 
-export const createUser = async (email: string, password: string, name: string) => {
+export const createUser = async (email: string, password: string, fullname: string, tenant_id: number = 1) => {
   const hashed = await hashPassword(password);
-  return await db.insert(users).values({ email, password: hashed, name }).returning();
+  const now = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '').slice(0, 14); // Format YYYYMMDDHHMMSS (14 chars)
+  return await db.insert(users).values({
+    tenant_id,
+    email,
+    password: hashed,
+    fullname,
+    phone: '',
+    private_key: '',
+    active: 'Y',
+    active_datetime: now,
+    non_active_datetime: '',
+    create_user_id: -1,
+    update_user_id: -1,
+    create_datetime: now,
+    update_datetime: '',
+    version: 0
+  }).returning();
 };
 
 export const findUserByEmail = async (email: string) => 
