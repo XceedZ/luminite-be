@@ -2,9 +2,44 @@
 
 ## Masalah: Serverless Function Crashed
 
-Jika build berhasil tapi serverless function crash, coba langkah-langkah berikut:
+Jika build berhasil tapi serverless function crash, ini adalah masalah umum dengan beberapa kemungkinan penyebab. Berikut langkah-langkah troubleshooting berdasarkan referensi dan best practices:
 
-### 1. **Cek Environment Variables**
+### ⚠️ **PENTING: Cek Function Logs Terlebih Dahulu**
+
+**Langkah paling penting:** Cek Function Logs di Vercel Dashboard untuk melihat error spesifik:
+1. Buka Vercel Dashboard → Project Anda
+2. Klik tab **"Functions"**
+3. Klik function yang error
+4. Lihat tab **"Logs"** untuk detail error
+
+Error message spesifik akan membantu debugging lebih lanjut.
+
+### 1. **Database Connection Issues (Paling Umum)**
+
+Masalah database connection adalah penyebab paling umum untuk serverless function crash:
+
+**Gejala:**
+- Function crash saat pertama kali diakses (cold start)
+- Error terkait database connection timeout
+- Function berhasil build tapi crash saat runtime
+
+**Solusi:**
+- ✅ Pastikan `DATABASE_URL` atau database credentials sudah benar
+- ✅ Pastikan database accessible dari internet (tidak di-block firewall)
+- ✅ Untuk Supabase/cloud databases: pastikan IP Vercel di-whitelist
+- ✅ Check SSL settings jika menggunakan cloud database
+- ✅ Pastikan connection pooling sudah dikonfigurasi (sudah ada di `src/db/index.ts`)
+
+**Test Connection:**
+```bash
+# Test dengan psql
+psql "postgresql://user:password@host:port/database"
+
+# Atau test dengan Node.js
+node -e "require('postgres')('postgresql://...').then(() => console.log('OK')).catch(console.error)"
+```
+
+### 2. **Environment Variables**
 
 Pastikan semua environment variables sudah di-set di Vercel Dashboard:
 - Settings → Environment Variables
@@ -22,7 +57,7 @@ DB_NAME=your-db-name
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 ```
 
-### 2. **Cek Function Logs**
+### 3. **Function Logs (PENTING!)**
 
 1. Buka Vercel Dashboard
 2. Pilih project Anda
@@ -30,7 +65,7 @@ JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 4. Klik function yang error
 5. Lihat "Logs" untuk detail error
 
-### 3. **Test Database Connection**
+### 4. **Cold Start Issues**
 
 Pastikan database accessible dari internet (untuk cloud deployment):
 - Check firewall settings
