@@ -1,9 +1,9 @@
 import { pgTable, serial, text, integer } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
 
 export const users = pgTable('users', {
   user_id: serial('user_id').primaryKey(),
   tenant_id: integer('tenant_id').notNull().default(1),
+  username: text('username').notNull().unique(),
   email: text('email').notNull().unique(),
   password: text('password').notNull().default(''),
   fullname: text('fullname').notNull().default(''),

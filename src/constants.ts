@@ -26,10 +26,13 @@ export const MESSAGES = {
 export const ERROR_MESSAGES = {
   INVALID_CREDENTIALS: 'invalid_credentials',
   USER_NOT_FOUND: 'user_not_found',
-  EMAIL_EXISTS: 'email_exists',
+  EMAIL_EXISTS: 'email_already_exists',
+  USERNAME_EXISTS: 'username_already_exists',
   UNAUTHORIZED: 'unauthorized',
   TOKEN_EXPIRED: 'token_expired',
-  TOKEN_INVALID: 'token_invalid'
+  TOKEN_INVALID: 'token_invalid',
+  BAD_REQUEST: 'bad_request',
+  INTERNAL_ERROR: 'internal_error'
 } as const;
 
 // Helper function to get message with automatic prefix based on status

@@ -6,12 +6,13 @@ import { config } from 'dotenv';
 // Load environment variables
 config();
 
-const queryClient = postgres({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'myapp',
+// Supabase connection string format: postgresql://user:password@host:port/database
+const connectionString = process.env.DATABASE_URL || 
+  `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || ''}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'postgres'}`;
+
+const queryClient = postgres(connectionString, {
+  ssl: process.env.DB_SSL === 'true' || connectionString.includes('supabase.co') ? 'require' : false,
+  max: 10, // Connection pool size
 });
 
 export const db = drizzle(queryClient, { schema });

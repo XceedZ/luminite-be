@@ -2,12 +2,11 @@ import { Elysia, t } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { jwt } from '@elysiajs/jwt';
 import { swagger } from '@elysiajs/swagger';
-import { createSelectSchema } from 'drizzle-typebox';
 import { db } from './db';
 import { users } from './db/schema';
-import { eq } from 'drizzle-orm';
-import { hashPassword, verifyPassword, createUser, findUserByEmail } from './auth';
-import { STATUS, MESSAGES, ERROR_MESSAGES, getMessage } from './constants';
+import { registerUser, loginUser } from './controllers/auth.controller';
+import { getAllActiveUsers } from './dao/users';
+import { STATUS, ERROR_MESSAGES, getMessage } from './constants';
 
 // Test database connection
 db.select().from(users).limit(1).then(() => {
@@ -29,10 +28,11 @@ const app = new Elysia()
     docs: `http://localhost:${server?.port}/docs`,
     swagger_ui: `http://localhost:${server?.port}/docs`,
     endpoints: {
-      register: 'POST /api/register',
-      login: 'POST /api/login',
-      profile: 'GET /api/profile (protected)',
-      users: 'GET /api/users (protected)'
+      register: 'POST /api/v1/register',
+      login: 'POST /api/v1/login',
+      logout: 'POST /api/v1/logout',
+      profile: 'GET /api/v1/profile (protected)',
+      users: 'GET /api/v1/users (protected)'
     }
   }))
   .use(swagger({
@@ -51,23 +51,61 @@ const app = new Elysia()
     }
   }))
 
-// API routes dengan prefix
-const apiRoutes = new Elysia({ prefix: '/api' })
+// API routes dengan prefix v1
+const apiRoutes = new Elysia({ prefix: '/api/v1' })
   .use(jwt({
     name: 'jwt',
     secret: process.env.JWT_SECRET!
   }))
 
   // Public: Register
-  .post('/register', async ({ body }) => {
-    const [newUser] = await createUser(body.email, body.password, body.fullname, body.tenant_id || 1);
+  .post('/register', async ({ body, set }) => {
+    console.log('🟢 [REGISTER ENDPOINT] Request received:', {
+      username: body.username,
+      email: body.email,
+      fullname: body.fullname,
+      hasPassword: !!body.password,
+      tenant_id: body.tenant_id
+    });
+
+    try {
+      const result = await registerUser({
+        username: body.username,
+        email: body.email,
+        password: body.password,
+        fullname: body.fullname,
+        tenant_id: body.tenant_id
+      });
+
+      console.log('🟢 [REGISTER ENDPOINT] Controller result:', {
+        status: result.status,
+        error: result.error,
+        message: result.message,
+        hasUser: !!result.data?.user
+      });
+
+      if (result.error) {
+        set.status = result.status === STATUS.BAD_REQUEST ? 400 : 500;
+        console.log('❌ [REGISTER ENDPOINT] Returning error response:', result);
+        return {
+          status: result.status,
+          message: result.message
+        };
+      }
+
+      console.log('✅ [REGISTER ENDPOINT] Returning success response');
+      return result;
+    } catch (error: any) {
+      console.error('❌ [REGISTER ENDPOINT] Error:', error);
+      set.status = 500;
     return {
-      status: STATUS.OK,
-      message: getMessage(STATUS.OK, MESSAGES.USER_CREATED),
-      data: { user: { user_id: newUser.user_id, fullname: newUser.fullname, email: newUser.email } }
+        status: STATUS.INTERNAL_ERROR,
+        message: getMessage(STATUS.INTERNAL_ERROR, ERROR_MESSAGES.INTERNAL_ERROR)
     };
+    }
   }, {
     body: t.Object({
+      username: t.String({ minLength: 3, maxLength: 30 }),
       fullname: t.String(),
       email: t.String({ format: 'email' }),
       password: t.String({ minLength: 6 }),
@@ -76,21 +114,95 @@ const apiRoutes = new Elysia({ prefix: '/api' })
     detail: { tags: ['Auth'] }
   })
 
-  // Public: Login
+  // Public: Login (support email or username)
   .post('/login', async ({ body, jwt, cookie: { auth }, set }) => {
-    const [user] = await findUserByEmail(body.email);
-    if (!user || !(await verifyPassword(body.password, user.password))) {
+    console.log('🟢 [LOGIN ENDPOINT] Request received:', {
+      emailOrUsername: body.emailOrUsername,
+      hasPassword: !!body.password
+    });
+
+    try {
+      const result = await loginUser({
+        emailOrUsername: body.emailOrUsername,
+        password: body.password
+      });
+
+      console.log('🟢 [LOGIN ENDPOINT] Controller result:', {
+        status: result.status,
+        error: result.error,
+        message: result.message
+      });
+
+      if (result.error) {
       set.status = 401;
-      return { status: STATUS.UNAUTHORIZED, message: getMessage(STATUS.UNAUTHORIZED, ERROR_MESSAGES.INVALID_CREDENTIALS) };
+        console.log('❌ [LOGIN ENDPOINT] Returning error response');
+        return {
+          status: result.status,
+          message: result.message
+        };
     }
-    const token = await jwt.sign({ user_id: user.user_id, fullname: user.fullname });
+
+      // Generate JWT token
+      console.log('🔵 [LOGIN ENDPOINT] Generating JWT token...');
+      const token = await jwt.sign({ 
+        user_id: result.data.user.user_id, 
+        username: result.data.user.username, 
+        fullname: result.data.user.fullname 
+      });
+      console.log('✅ [LOGIN ENDPOINT] JWT token generated');
+      
+      // Set cookie
     auth.set({ value: token, httpOnly: true, maxAge: 7 * 24 * 60 * 60 });  // 7 days
-    return { status: STATUS.OK, message: getMessage(STATUS.OK, MESSAGES.LOGIN_SUCCESS), data: { token } };
+      console.log('✅ [LOGIN ENDPOINT] Cookie set');
+      
+      console.log('✅ [LOGIN ENDPOINT] Returning success response');
+      return {
+        status: result.status,
+        message: result.message,
+        data: {
+          token,
+          user: result.data.user
+        }
+      };
+    } catch (error: any) {
+      console.error('❌ [LOGIN ENDPOINT] Error:', error);
+      set.status = 500;
+      return {
+        status: STATUS.INTERNAL_ERROR,
+        message: getMessage(STATUS.INTERNAL_ERROR, ERROR_MESSAGES.INTERNAL_ERROR)
+      };
+    }
   }, {
     body: t.Object({
-      email: t.String({ format: 'email' }),
+      emailOrUsername: t.String(), // Can be email or username
       password: t.String()
     }),
+    detail: { tags: ['Auth'] }
+  })
+
+  // Public: Logout
+  .post('/logout', async ({ cookie: { auth }, set }) => {
+    console.log('🟢 [LOGOUT ENDPOINT] Request received');
+
+    try {
+      // Clear auth cookie
+      auth.remove();
+      console.log('✅ [LOGOUT ENDPOINT] Cookie cleared');
+
+      return {
+        status: STATUS.OK,
+        message: getMessage(STATUS.OK, MESSAGES.LOGOUT_SUCCESS),
+        error: false
+      };
+    } catch (error: any) {
+      console.error('❌ [LOGOUT ENDPOINT] Error:', error);
+      set.status = 500;
+      return {
+        status: STATUS.INTERNAL_ERROR,
+        message: getMessage(STATUS.INTERNAL_ERROR, ERROR_MESSAGES.INTERNAL_ERROR)
+      };
+    }
+  }, {
     detail: { tags: ['Auth'] }
   })
 
@@ -103,7 +215,12 @@ const apiRoutes = new Elysia({ prefix: '/api' })
         return { user: profile };
       })
       .get('/', ({ user }) => ({ message: `Hello ${(user as any)?.fullname}!` }), {
-        beforeHandle: ({ user, set }) => { if (!user) set.status = 401, 'Unauthorized'; },
+        beforeHandle: ({ user, set }) => { 
+          if (!user) {
+            set.status = 401;
+            return 'Unauthorized';
+          }
+        },
         detail: { tags: ['Protected'], security: [{ bearerAuth: [] }] }
       })
   )
@@ -112,13 +229,14 @@ const apiRoutes = new Elysia({ prefix: '/api' })
   .get('/users', async ({ jwt, cookie: { auth } }) => {
     const profile = auth.value ? await jwt.verify(auth.value as string) : null;
     if (!profile) throw new Error('Unauthorized');
-    const allUsers = await db.select().from(users).where(eq(users.active, 'Y'));
+    const allUsers = await getAllActiveUsers();
     return allUsers;
   }, {
     detail: { tags: ['Protected'], security: [{ bearerAuth: [] }] },
     response: t.Array(t.Object({
       user_id: t.Number(),
       tenant_id: t.Number(),
+      username: t.String(),
       email: t.String(),
       fullname: t.String(),
       phone: t.Union([t.String(), t.Null()]),
@@ -137,7 +255,7 @@ const apiRoutes = new Elysia({ prefix: '/api' })
 // Gabungkan API routes dengan app utama
 app.use(apiRoutes)
 
-app.listen(3000);
+app.listen(5005);
 
 console.log(`🦊 Elysia running at http://localhost:${app.server?.port}`);
 console.log(`📖 API docs: http://localhost:${app.server?.port}/docs`);

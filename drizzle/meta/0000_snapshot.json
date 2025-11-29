@@ -1,12 +1,11 @@
 {
-  "id": "5084bea2-a345-4a32-a161-8c11df3c7bee",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "0000_initial_users_table",
+  "prevId": null,
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.users": {
+    "users": {
       "name": "users",
-      "schema": "",
       "columns": {
         "user_id": {
           "name": "user_id",
@@ -17,97 +16,83 @@
         "tenant_id": {
           "name": "tenant_id",
           "type": "integer",
-          "primaryKey": false,
           "notNull": true,
           "default": 1
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "notNull": true,
+          "unique": true
         },
         "email": {
           "name": "email",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "unique": true
         },
         "password": {
           "name": "password",
           "type": "text",
-          "primaryKey": false,
           "notNull": true,
-          "default": "''"
+          "default": ""
         },
         "fullname": {
           "name": "fullname",
           "type": "text",
-          "primaryKey": false,
           "notNull": true,
-          "default": "''"
+          "default": ""
         },
         "phone": {
           "name": "phone",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
+          "notNull": false
         },
         "private_key": {
           "name": "private_key",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
+          "notNull": false
         },
         "active": {
           "name": "active",
           "type": "text",
-          "primaryKey": false,
           "notNull": true,
-          "default": "'Y'"
+          "default": "Y"
         },
         "active_datetime": {
           "name": "active_datetime",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
+          "notNull": false
         },
         "non_active_datetime": {
           "name": "non_active_datetime",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
+          "notNull": false
         },
         "create_user_id": {
           "name": "create_user_id",
           "type": "integer",
-          "primaryKey": false,
           "notNull": true,
           "default": -1
         },
         "update_user_id": {
           "name": "update_user_id",
           "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": -1
+          "notNull": false
         },
         "create_datetime": {
           "name": "create_datetime",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
+          "notNull": false
         },
         "update_datetime": {
           "name": "update_datetime",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
+          "notNull": false
         },
         "version": {
           "name": "version",
           "type": "integer",
-          "primaryKey": false,
           "notNull": true,
           "default": 0
         }
@@ -118,23 +103,17 @@
       "uniqueConstraints": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
+        },
+        "users_username_unique": {
+          "name": "users_username_unique",
+          "columns": ["username"]
         }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      }
     }
   },
   "enums": {},
   "schemas": {},
-  "sequences": {},
-  "roles": {},
-  "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
