@@ -267,6 +267,65 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
 app.use(apiRoutes);
 
 // Export handler untuk Vercel
-// Elysia can handle requests directly
-export default app;
+// Vercel serverless function handler
+export default async (req: any, res: any) => {
+  try {
+    // Get request URL
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+    const url = `${protocol}://${host}${req.url || '/'}`;
+
+    // Convert headers
+    const headers = new Headers();
+    Object.entries(req.headers).forEach(([key, value]) => {
+      if (value && key.toLowerCase() !== 'host') {
+        headers.set(key, String(value));
+      }
+    });
+
+    // Handle body
+    let body: string | undefined;
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      if (req.body) {
+        // If body is already a string, use it; otherwise stringify
+        body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      } else if (req.rawBody) {
+        body = req.rawBody;
+      }
+    }
+
+    // Create Fetch API Request
+    const request = new Request(url, {
+      method: req.method,
+      headers,
+      body,
+    });
+
+    // Handle request with Elysia
+    const response = await app.handle(request);
+
+    // Convert response headers
+    const responseHeaders: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      responseHeaders[key] = value;
+    });
+
+    // Get response body
+    const responseBody = await response.text();
+
+    // Send response
+    res.status(response.status);
+    Object.entries(responseHeaders).forEach(([key, value]) => {
+      res.setHeader(key, value);
+    });
+    res.send(responseBody);
+  } catch (error) {
+    console.error('Error in Vercel handler:', error);
+    res.status(500).json({ 
+      status: 'ERROR', 
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
 
