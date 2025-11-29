@@ -140,6 +140,14 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
       }
 
       // Generate JWT token
+      if (!result.data?.user) {
+        set.status = 500;
+        return {
+          status: STATUS.INTERNAL_ERROR,
+          message: getMessage(STATUS.INTERNAL_ERROR, ERROR_MESSAGES.INTERNAL_ERROR)
+        };
+      }
+
       console.log('🔵 [LOGIN ENDPOINT] Generating JWT token...');
       const token = await jwt.sign({ 
         user_id: result.data.user.user_id, 
