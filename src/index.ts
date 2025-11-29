@@ -6,7 +6,7 @@ import { db } from './db';
 import { users } from './db/schema';
 import { registerUser, loginUser } from './controllers/auth.controller';
 import { getAllActiveUsers } from './dao/users';
-import { STATUS, ERROR_MESSAGES, getMessage } from './constants';
+import { STATUS, MESSAGES, ERROR_MESSAGES, getMessage } from './constants';
 
 // Test database connection
 db.select().from(users).limit(1).then(() => {
@@ -143,6 +143,14 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
     }
 
       // Generate JWT token
+      if (!result.data?.user) {
+        set.status = 500;
+        return {
+          status: STATUS.INTERNAL_ERROR,
+          message: getMessage(STATUS.INTERNAL_ERROR, ERROR_MESSAGES.INTERNAL_ERROR)
+        };
+      }
+
       console.log('🔵 [LOGIN ENDPOINT] Generating JWT token...');
       const token = await jwt.sign({ 
         user_id: result.data.user.user_id, 
@@ -152,7 +160,7 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
       console.log('✅ [LOGIN ENDPOINT] JWT token generated');
       
       // Set cookie
-    auth.set({ value: token, httpOnly: true, maxAge: 7 * 24 * 60 * 60 });  // 7 days
+      auth.set({ value: token, httpOnly: true, maxAge: 7 * 24 * 60 * 60 });  // 7 days
       console.log('✅ [LOGIN ENDPOINT] Cookie set');
       
       console.log('✅ [LOGIN ENDPOINT] Returning success response');
