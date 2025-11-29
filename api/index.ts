@@ -284,8 +284,25 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
 app.use(apiRoutes);
 
 // Export handler untuk Vercel dengan Bun runtime
-// Vercel Bun runtime expects a handler function
+// Vercel Bun runtime expects a handler with fetch method
 export default {
-  fetch: (request: Request) => app.handle(request)
+  fetch: async (request: Request) => {
+    try {
+      return await app.handle(request);
+    } catch (error) {
+      console.error('Error handling request:', error);
+      return new Response(
+        JSON.stringify({
+          status: 'ERROR',
+          message: 'Internal server error',
+          error: error instanceof Error ? error.message : String(error)
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+  }
 };
 
