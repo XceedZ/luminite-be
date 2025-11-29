@@ -8,6 +8,15 @@ import { registerUser, loginUser } from '../src/controllers/auth.controller';
 import { getAllActiveUsers } from '../src/dao/users';
 import { STATUS, MESSAGES, ERROR_MESSAGES, getMessage } from '../src/constants';
 
+// Test database connection (non-blocking)
+// Don't crash if database is not available during cold start
+db.select().from(users).limit(1).then(() => {
+  console.log('✅ Database connection successful');
+}).catch((error) => {
+  console.error('❌ Database connection failed:', error);
+  // Don't throw - let the app continue
+});
+
 // Root route - harus didefinisikan sebelum middleware
 // @ts-ignore - Elysia types may not be fully recognized in Vercel build
 const app = new Elysia()
@@ -283,26 +292,7 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
 // @ts-ignore
 app.use(apiRoutes);
 
-// Export handler untuk Vercel dengan Bun runtime
-// Vercel Bun runtime expects a handler with fetch method
-export default {
-  fetch: async (request: Request) => {
-    try {
-      return await app.handle(request);
-    } catch (error) {
-      console.error('Error handling request:', error);
-      return new Response(
-        JSON.stringify({
-          status: 'ERROR',
-          message: 'Internal server error',
-          error: error instanceof Error ? error.message : String(error)
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-  }
-};
+// Export Elysia app directly for Vercel Bun runtime
+// Vercel will automatically handle the Elysia app with Bun runtime
+export default app;
 
