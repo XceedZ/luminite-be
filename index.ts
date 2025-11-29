@@ -1,4 +1,3 @@
-// Root entry point for Vercel with Bun runtime
-// Vercel akan otomatis menggunakan Bun runtime dan handle Elysia app
+// Re-export from api/index.ts for Vercel
 export { default } from './api/index';
 

@@ -283,7 +283,9 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
 // @ts-ignore
 app.use(apiRoutes);
 
-// Export Elysia app untuk Vercel dengan Bun runtime
-// Vercel akan otomatis menggunakan Bun runtime dan handle request ke Elysia
-export default app;
+// Export handler untuk Vercel dengan Bun runtime
+// Vercel Bun runtime expects a handler function
+export default {
+  fetch: (request: Request) => app.handle(request)
+};
 
