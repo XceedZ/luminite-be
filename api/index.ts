@@ -280,100 +280,10 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
   });
 
 // Gabungkan API routes dengan app utama
+// @ts-ignore
 app.use(apiRoutes);
 
-// Export handler untuk Vercel
-// Vercel serverless function handler
-export default async (req: any, res: any) => {
-  try {
-    console.log('📥 [VERCEL HANDLER] Request received:', {
-      method: req.method,
-      url: req.url,
-      path: req.url?.split('?')[0]
-    });
-
-    // Get request URL
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
-    const url = `${protocol}://${host}${req.url || '/'}`;
-
-    console.log('🔗 [VERCEL HANDLER] Constructed URL:', url);
-
-    // Convert headers
-    const headers = new Headers();
-    Object.entries(req.headers || {}).forEach(([key, value]) => {
-      if (value && key.toLowerCase() !== 'host') {
-        headers.set(key, String(value));
-      }
-    });
-
-    // Handle body
-    let body: string | undefined;
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      if (req.body) {
-        // If body is already a string, use it; otherwise stringify
-        body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-      } else if (req.rawBody) {
-        body = req.rawBody;
-      }
-    }
-
-    console.log('📦 [VERCEL HANDLER] Body prepared:', body ? 'Yes' : 'No');
-
-    // Create Fetch API Request
-    const request = new Request(url, {
-      method: req.method || 'GET',
-      headers,
-      body,
-    });
-
-    console.log('🚀 [VERCEL HANDLER] Handling request with Elysia...');
-
-    // Handle request with Elysia
-    const response = await app.handle(request);
-
-    console.log('✅ [VERCEL HANDLER] Elysia response received:', {
-      status: response.status,
-      statusText: response.statusText
-    });
-
-    // Convert response headers
-    const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((value: string, key: string) => {
-      responseHeaders[key] = value;
-    });
-
-    // Get response body
-    const responseBody = await response.text();
-
-    console.log('📤 [VERCEL HANDLER] Sending response...');
-
-    // Send response
-    res.status(response.status || 200);
-    Object.entries(responseHeaders).forEach(([key, value]) => {
-      res.setHeader(key, value);
-    });
-    res.send(responseBody);
-
-    console.log('✅ [VERCEL HANDLER] Response sent successfully');
-  } catch (error) {
-    console.error('❌ [VERCEL HANDLER] Error:', error);
-    console.error('❌ [VERCEL HANDLER] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('❌ [VERCEL HANDLER] Error details:', {
-      message: error instanceof Error ? error.message : String(error),
-      name: error instanceof Error ? error.name : 'Unknown',
-      cause: error instanceof Error ? error.cause : undefined
-    });
-
-    // Ensure response is sent
-    if (!res.headersSent) {
-      res.status(500).json({ 
-        status: 'ERROR', 
-        message: 'Internal server error',
-        error: error instanceof Error ? error.message : String(error),
-        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
-      });
-    }
-  }
-};
+// Export Elysia app untuk Vercel dengan Bun runtime
+// Vercel akan otomatis menggunakan Bun runtime dan handle request ke Elysia
+export default app;
 
