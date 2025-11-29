@@ -192,7 +192,8 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
   })
 
   // Public: Logout
-  .post('/logout', async ({ cookie: { auth }, set }) => {
+  .post('/logout', async (context: any) => {
+    const { cookie: { auth }, set } = context;
     console.log('🟢 [LOGOUT ENDPOINT] Request received');
 
     try {
@@ -218,15 +219,20 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
   })
 
   // Protected: Profile (butuh JWT)
-  .group('/profile', (app) =>
+  .group('/profile', (app: any) =>
     app
-      .derive(async ({ jwt, cookie: { auth }, set }) => {
+      .derive(async (context: any) => {
+        const { jwt, cookie: { auth }, set } = context;
         const profile = auth.value ? await jwt.verify(auth.value as string) : null;
         if (!profile) set.status = 401;
         return { user: profile };
       })
-      .get('/', ({ user }) => ({ message: `Hello ${(user as any)?.fullname}!` }), {
-        beforeHandle: ({ user, set }) => { 
+      .get('/', (context: any) => {
+        const { user } = context;
+        return { message: `Hello ${(user as any)?.fullname}!` };
+      }, {
+        beforeHandle: (context: any) => { 
+          const { user, set } = context;
           if (!user) {
             set.status = 401;
             return 'Unauthorized';
@@ -237,7 +243,8 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
   )
 
   // Contoh protected dengan Drizzle inference
-  .get('/users', async ({ jwt, cookie: { auth } }) => {
+  .get('/users', async (context: any) => {
+    const { jwt, cookie: { auth } } = context;
     const profile = auth.value ? await jwt.verify(auth.value as string) : null;
     if (!profile) throw new Error('Unauthorized');
     const allUsers = await getAllActiveUsers();
@@ -306,7 +313,7 @@ export default async (req: any, res: any) => {
 
     // Convert response headers
     const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((value, key) => {
+    response.headers.forEach((value: string, key: string) => {
       responseHeaders[key] = value;
     });
 
