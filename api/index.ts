@@ -16,18 +16,20 @@ const app = new Elysia()
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
   }))
-  .get('/', ({ server }) => ({
-    message: 'Welcome to Elysia.js Backend API',
-    docs: `https://${process.env.VERCEL_URL || 'your-domain'}/docs`,
-    swagger_ui: `https://${process.env.VERCEL_URL || 'your-domain'}/docs`,
-    endpoints: {
-      register: 'POST /api/v1/register',
-      login: 'POST /api/v1/login',
-      logout: 'POST /api/v1/logout',
-      profile: 'GET /api/v1/profile (protected)',
-      users: 'GET /api/v1/users (protected)'
-    }
-  }))
+  .get('/', (context: any) => {
+    return {
+      message: 'Welcome to Elysia.js Backend API',
+      docs: `https://${process.env.VERCEL_URL || 'your-domain'}/docs`,
+      swagger_ui: `https://${process.env.VERCEL_URL || 'your-domain'}/docs`,
+      endpoints: {
+        register: 'POST /api/v1/register',
+        login: 'POST /api/v1/login',
+        logout: 'POST /api/v1/logout',
+        profile: 'GET /api/v1/profile (protected)',
+        users: 'GET /api/v1/users (protected)'
+      }
+    };
+  })
   .use(swagger({
     path: '/docs',
     documentation: {
@@ -49,14 +51,16 @@ const app = new Elysia()
   }));
 
 // API routes dengan prefix v1
-const apiRoutes = new Elysia({ prefix: '/api/v1' })
+const apiRoutes = new Elysia()
+  .group('/api/v1', (app: any) => app
   .use(jwt({
     name: 'jwt',
     secret: process.env.JWT_SECRET || 'your-secret-key'
   }))
 
   // Public: Register
-  .post('/register', async ({ body, set }) => {
+  .post('/register', async (context: any) => {
+    const { body, set } = context;
     console.log('🟢 [REGISTER ENDPOINT] Request received:', {
       username: body.username,
       email: body.email,
@@ -112,7 +116,8 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
   })
 
   // Public: Login (support email or username)
-  .post('/login', async ({ body, jwt, cookie: { auth }, set }) => {
+  .post('/login', async (context: any) => {
+    const { body, jwt, cookie: { auth }, set } = context;
     console.log('🟢 [LOGIN ENDPOINT] Request received:', {
       emailOrUsername: body.emailOrUsername,
       hasPassword: !!body.password
@@ -268,7 +273,7 @@ const apiRoutes = new Elysia({ prefix: '/api/v1' })
       update_datetime: t.Union([t.String(), t.Null()]),
       version: t.Number()
     }))
-  });
+  }));
 
 // Gabungkan API routes dengan app utama
 app.use(apiRoutes);
