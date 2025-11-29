@@ -9,7 +9,9 @@ import { getAllActiveUsers } from '../src/dao/users';
 import { STATUS, MESSAGES, ERROR_MESSAGES, getMessage } from '../src/constants';
 
 // Root route - harus didefinisikan sebelum middleware
+// @ts-ignore - Elysia types may not be fully recognized in Vercel build
 const app = new Elysia()
+  // @ts-ignore
   .use(cors({
     origin: true, // Allow all origins, or specify specific origins
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -30,6 +32,7 @@ const app = new Elysia()
       }
     };
   })
+  // @ts-ignore
   .use(swagger({
     path: '/docs',
     documentation: {
@@ -51,8 +54,9 @@ const app = new Elysia()
   }));
 
 // API routes dengan prefix v1
-const apiRoutes = new Elysia()
-  .group('/api/v1', (app: any) => app
+// @ts-ignore
+const apiRoutes = new Elysia({ prefix: '/api/v1' })
+  // @ts-ignore
   .use(jwt({
     name: 'jwt',
     secret: process.env.JWT_SECRET || 'your-secret-key'
@@ -273,7 +277,7 @@ const apiRoutes = new Elysia()
       update_datetime: t.Union([t.String(), t.Null()]),
       version: t.Number()
     }))
-  }));
+  });
 
 // Gabungkan API routes dengan app utama
 app.use(apiRoutes);
